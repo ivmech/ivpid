@@ -33,16 +33,6 @@ from matplotlib.widgets import Slider
 import numpy as np
 from scipy.interpolate import spline
 
-trackbars = []
-TB_KP = 0
-TB_KI = 1
-TB_KD = 2
-
-knob_labels = ["Kp", "Ki", "Kd"]
-knobs =       [.2,    0.0,  0.0]
-knob_gain =   [ 1,      1,    1]
-
-
 
 
 
@@ -105,12 +95,8 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100, input_axis=None, output_axis=None
     
     plt.xlim((0, L))
     plt.ylim((min(feedback_list)-0.5, max(feedback_list)+0.5))
-    
     plt.ylim((1-0.5, 1+0.5))
 
-    
-
-    
     
     return input_axis, output_axis
 
@@ -118,31 +104,31 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100, input_axis=None, output_axis=None
 def setup_plt():
     #Make room for sliders:
     fig, ax = plt.subplots()
-    plt.subplots_adjust(left=0.25, bottom=0.25)
+    plt.subplots_adjust(bottom=0.35)
     plt.axis([0, 1, -10, 10])
     
     #Apply labels once
     plt.xlabel('time (s)')
-    plt.ylabel('PID Controller Trying to Follow Input')
-    plt.title('Pure Proportional Control')
+    plt.ylabel('Time Domain signal')
+    plt.title('PID Controller Trying to Follow Input')
     plt.grid(True)
 
     return fig
 
 def setup_sliders(fig, signal1_axis, signal2_axis):    
     axcolor = 'lightgoldenrodyellow'
-    ax_kp = plt.axes([0.25, 0.1, 0.65, 0.03], axisbg=axcolor)
-    ax_ki = plt.axes([0.25, 0.15, 0.65, 0.03], axisbg=axcolor)
-    ax_kd = plt.axes([0.25, 0.2,  0.65, 0.03], axisbg=axcolor)
+    ax_kp = plt.axes([.10, 0.2,  0.65, 0.03], axisbg=axcolor)
+    ax_ki = plt.axes([.10, 0.15, 0.65, 0.03], axisbg=axcolor)
+    ax_kd = plt.axes([.10, 0.1,  0.65, 0.03], axisbg=axcolor)
 
 
-    kp_slider = Slider(ax_kp, 'Kp', 0.0, 10.0, valinit=0.8)
-    ki_slider = Slider(ax_ki, 'Ki', 0.0, 10.0, valinit=0.0)
-    kd_slider = Slider(ax_kd, 'Kd', 0.0, 10.0, valinit=0.0)
+    kp_slider = Slider(ax_kp, 'Kp', 0.0, 5.0, valinit=0.8)
+    ki_slider = Slider(ax_ki, 'Ki', 0.0, 5.0, valinit=0.0)
+    kd_slider = Slider(ax_kd, 'Kd', 0.0, 5.0, valinit=0.0)
   
 
     def update(val):
-            signal1, signal2 = test_pid(kp_slider.val, ki_slider.val, kd_slider.val, L=100, input_axis=signal1_axis, output_axis=signal2_axis)
+            signal1, signal2 = test_pid(kp_slider.val, ki_slider.val, kd_slider.val, L=50, input_axis=signal1_axis, output_axis=signal2_axis)
             fig.canvas.draw_idle()
     
     kp_slider.on_changed(update)
@@ -155,7 +141,7 @@ def setup_sliders(fig, signal1_axis, signal2_axis):
 if __name__ == "__main__":
     fig = setup_plt()
 
-    input_signal_ax, output_signal_ax = test_pid(.8, 0, 0.00, L=50)
+    input_signal_ax, output_signal_ax = test_pid(.8, 0, 0, L=50)
     
     setup_sliders(fig, input_signal_ax, output_signal_ax)
 

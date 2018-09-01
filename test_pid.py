@@ -50,7 +50,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100):
     pid = PID.PID(P, I, D)
 
     pid.SetPoint=0.0
-    pid.setSampleTime(0.01)
+    pid.setSampleTime(0.1)
 
     END = L
     feedback = 0
@@ -66,7 +66,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100):
             feedback += (output - (1/i))
         if i>9:
             pid.SetPoint = 1
-        time.sleep(0.02)
+        time.sleep(0.01)
 
         feedback_list.append(feedback)
         setpoint_list.append(pid.SetPoint)
@@ -90,5 +90,6 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100):
     plt.show()
 
 if __name__ == "__main__":
-    test_pid(1.2, 1, 0.001, L=50)
-#    test_pid(0.8, L=50)
+    test_pid(0.5, 0.1, 0.001, L=200)
+    test_pid(1, 0.1, 0.001, L=200)
+    test_pid(1, 0.5, 0.001, L=200)

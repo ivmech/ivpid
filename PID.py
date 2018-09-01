@@ -82,7 +82,7 @@ class PID:
         self.PTerm = self.Kp * error
 
         if (delta_time >= self.sample_time):
-            self.PTerm = self.Kp * error
+            # self.PTerm = self.Kp * error
             self.ITerm += error * delta_time
 
             if (self.ITerm < -self.windup_guard):

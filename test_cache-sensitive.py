@@ -102,11 +102,14 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
         diff = output - prev_output
         print("Diff: " + str(diff))
         i = int(round(abs(output) * len(freqs) / 10.0))
+        if i == 0:
+            i = 1
         print("i: " + str(i))
+
 
         if feedback == pid.SetPoint:
             no_change = True
-        elif diff > 0:
+        elif output > 0:
             if prev_idx + i < len(freqs):
                 freq = freqs[prev_idx + i]
                 prev_idx = prev_idx + i
@@ -115,7 +118,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
                 prev_idx = len(freqs) - 1
             else:
                 no_change = True
-        elif diff < 0:
+        elif output < 0:
             if prev_idx - i >= 0:
                 freq = freqs[prev_idx - i]
                 prev_idx = prev_idx - i
@@ -128,11 +131,13 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
             no_change = True
 
         prev_output = output
+
         print("Frequency: " + str(freq))
         if not no_change:
-           setfreq(freq)
+            setfreq(freq)
         else:
-           print("No change!")
+            print("No change!")
+
 
         time.sleep(1)
         r = requests.get('http://192.168.122.137:8001/v1/data')
@@ -146,4 +151,4 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
 
 
 if __name__ == "__main__":
-    test_pid(1.2, 1, 0.01)
+    test_pid(10.0, 1, 0.001)

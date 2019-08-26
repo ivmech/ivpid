@@ -6,7 +6,16 @@ import signal
 import requests
 
 
-cpus = [0,48]
+#cpus = [0,48]
+#goal = "higher"
+#metric = "TranscodingMbps"
+#endpoint = 'http://192.168.122.137:8001/v1/data'
+#target_value = 0.7
+cpus = [1,49,2,50,3,51,4,52]
+goal = "lower"
+metric = "pkt-loss"
+endpoint = 'http://127.0.0.1:5000/latency_stats'
+target_value = 5.0
 
 def signal_handler(sig, frame):
     for cpu in cpus:
@@ -74,42 +83,58 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
     prev_idx = 0
     freq = freqs[prev_idx]
     setfreq(freq)
-    time.sleep(1)
+    time.sleep(2)
 
-    r = requests.get('http://192.168.122.137:8001/v1/data')
+    r = requests.get(endpoint)
     r.json()
     measurement = json.loads(r.text)
 
     pid = PID.PID(P, I, D)
 
-    pid.SetPoint=0.7
+    pid.SetPoint = target_value
     pid.setSampleTime(0.01)
 
-    feedback = measurement["TranscodingMbps"]
+    feedback = measurement[metric]
     prev_output = 0
+    y = 1
+    count = 0
+
     while True:
         no_change = False
         print("Real Feedback: " + str(feedback))
-        if (feedback > (pid.SetPoint - abs(0.05*pid.SetPoint))) and (feedback < (pid.SetPoint + abs(0.05*pid.SetPoint))):
+        if (feedback > (pid.SetPoint - abs(0.1*pid.SetPoint))) and (feedback < (pid.SetPoint + abs(0.1*pid.SetPoint))):
             feedback = pid.SetPoint
         pid.update(feedback)
         print("Feedback: " + str(feedback))
         output = pid.output
         print("Output: " + str(output))
+        print("------")
 
-        # Assumption: bigger frequency -> better performance
-        #TODO: find a smart way to convert pid output to frequency
+        if count == 1:
+            str_output = str(abs(output))
+            digits = len(str_output.split('.')[0])
+            y = abs(output) * 2.5
+            #for k in range(0, digits):
+            #    y *= 10.0
+            print("Divisor: ", str(y))
+
+        count += 1
+
+        #convert pid output to frequency
+
         diff = output - prev_output
         print("Diff: " + str(diff))
-        i = int(round(abs(output) * len(freqs) / 10.0))
+
+        # find how many steps we need to increase/decrease the current index of the freqs list
+        i = int(round(abs(output) * len(freqs) / y))
         if i == 0:
             i = 1
-        print("i: " + str(i))
+        #print("i: " + str(i))
 
 
         if feedback == pid.SetPoint:
             no_change = True
-        elif output > 0:
+        elif (output > 0 and goal == "higher") or (output < 0 and goal == "lower"):
             if prev_idx + i < len(freqs):
                 freq = freqs[prev_idx + i]
                 prev_idx = prev_idx + i
@@ -118,7 +143,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
                 prev_idx = len(freqs) - 1
             else:
                 no_change = True
-        elif output < 0:
+        elif (output < 0 and goal == "higher") or (output > 0 and goal == "lower"):
             if prev_idx - i >= 0:
                 freq = freqs[prev_idx - i]
                 prev_idx = prev_idx - i
@@ -139,11 +164,11 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
             print("No change!")
 
 
-        time.sleep(1)
-        r = requests.get('http://192.168.122.137:8001/v1/data')
+        time.sleep(2)
+        r = requests.get(endpoint)
         r.json()
         measurement = json.loads(r.text)
-        feedback = measurement["TranscodingMbps"]
+        feedback = measurement[metric]
 
         feedback_list.append(feedback)
         setpoint_list.append(pid.SetPoint)

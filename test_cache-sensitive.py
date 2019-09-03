@@ -6,16 +6,20 @@ import signal
 import requests
 
 
-#cpus = [0,48]
-#goal = "higher"
-#metric = "TranscodingMbps"
-#endpoint = 'http://192.168.122.137:8001/v1/data'
-#target_value = 0.7
-cpus = [1,49,2,50,3,51,4,52]
-goal = "lower"
-metric = "pkt-loss"
-endpoint = 'http://127.0.0.1:5000/latency_stats'
-target_value = 5.0
+cpus = [15,63]
+goal = "higher"
+metric = "TranscodingMbps"
+endpoint = 'http://192.168.122.137:8001/v1/data'
+target_value = 0.7
+#cpus = [1,49,2,50,3,51,4,52]
+#goal = "lower"
+#metric = "pkt-loss"
+#endpoint = 'http://127.0.0.1:5000/latency_stats'
+#target_value = 5.0
+
+tolerance = 0.1
+extension = 0.03
+
 
 def signal_handler(sig, frame):
     for cpu in cpus:
@@ -73,10 +77,10 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
     freqs = []
 
     f = 900000
-    for i in range(0, 25):
+    for i in range(0, 12):
         f += 100000
         freqs.append(f)
-
+    print freqs
 
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -98,11 +102,13 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
     prev_output = 0
     y = 1
     count = 0
+    time_now = time.time()
+    flag = True
 
     while True:
         no_change = False
         print("Real Feedback: " + str(feedback))
-        if (feedback > (pid.SetPoint - abs(0.1*pid.SetPoint))) and (feedback < (pid.SetPoint + abs(0.1*pid.SetPoint))):
+        if (feedback > (pid.SetPoint - abs(tolerance*pid.SetPoint + extension))) and (feedback < (pid.SetPoint + abs(tolerance*pid.SetPoint + extension))):
             feedback = pid.SetPoint
         pid.update(feedback)
         print("Feedback: " + str(feedback))
@@ -110,13 +116,14 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
         print("Output: " + str(output))
         print("------")
 
-        if count == 1:
+        if output != 0.0 and flag:
             str_output = str(abs(output))
             digits = len(str_output.split('.')[0])
             y = abs(output) * 2.5
             #for k in range(0, digits):
             #    y *= 10.0
             print("Divisor: ", str(y))
+            flag = False
 
         count += 1
 
@@ -160,8 +167,20 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
         print("Frequency: " + str(freq))
         if not no_change:
             setfreq(freq)
+            time_now = time.time()
         else:
-            print("No change!")
+            if (time.time() - time_now) >= 5:
+                print("Second stage!")
+                changed, new_freq, new_prev_idx = second_stage(freq, prev_idx, feedback, freqs)
+                if changed:
+                    print("new_freq= " +str(new_freq) + " prev_idx= " + str(new_prev_idx))
+                    freq = new_freq
+                    prev_idx = new_prev_idx
+
+                time_now = time.time()
+            else:
+                print("No change!")
+
 
 
         time.sleep(2)
@@ -172,6 +191,33 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
 
         feedback_list.append(feedback)
         setpoint_list.append(pid.SetPoint)
+
+
+def second_stage(freq, idx, feedback, freqs):
+    if not idx:
+        return False, None, None
+    else:
+        while idx > 0:
+            idx -= 1
+            freq = freqs[idx]
+            setfreq(freq)
+
+            time.sleep(2)
+            r = requests.get(endpoint)
+            r.json()
+            measurement = json.loads(r.text)
+            new_feedback = measurement[metric]
+
+            print("freq= " + str(freq) + " new_feedback= " + str(new_feedback))
+            if (new_feedback > (feedback - abs(tolerance*feedback + extension))) and (new_feedback < (feedback + abs(tolerance*feedback + extension))):
+                continue
+            else:
+                idx += 1
+                freq = freqs[idx]
+                setfreq(freq)
+                return True, freq, idx
+
+        return True, freq, idx
 
 
 

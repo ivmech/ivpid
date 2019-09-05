@@ -10,14 +10,14 @@ cpus = [15,63]
 goal = "higher"
 metric = "TranscodingMbps"
 endpoint = 'http://192.168.122.137:8001/v1/data'
-target_value = 0.7
+target_value = 0.5
 #cpus = [1,49,2,50,3,51,4,52]
 #goal = "lower"
 #metric = "pkt-loss"
 #endpoint = 'http://127.0.0.1:5000/latency_stats'
 #target_value = 5.0
 
-tolerance = 0.1
+perc = 0.1
 extension = 0.03
 
 
@@ -101,15 +101,21 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
     feedback = measurement[metric]
     prev_output = 0
     y = 1
-    count = 0
     time_now = time.time()
     flag = True
 
     while True:
         no_change = False
         print("Real Feedback: " + str(feedback))
-        if (feedback > (pid.SetPoint - abs(tolerance*pid.SetPoint + extension))) and (feedback < (pid.SetPoint + abs(tolerance*pid.SetPoint + extension))):
+
+        if pid.SetPoint == 0:
+            tolerance =  abs(perc*pid.SetPoint + extension)
+        else:
+            tolerance =  abs(perc*pid.SetPoint)
+
+        if (feedback > (pid.SetPoint - tolerance)) and (feedback < (pid.SetPoint + tolerance)):
             feedback = pid.SetPoint
+
         pid.update(feedback)
         print("Feedback: " + str(feedback))
         output = pid.output
@@ -117,15 +123,10 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
         print("------")
 
         if output != 0.0 and flag:
-            str_output = str(abs(output))
-            digits = len(str_output.split('.')[0])
             y = abs(output) * 2.5
-            #for k in range(0, digits):
-            #    y *= 10.0
             print("Divisor: ", str(y))
             flag = False
 
-        count += 1
 
         #convert pid output to frequency
 
@@ -169,7 +170,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0):
             setfreq(freq)
             time_now = time.time()
         else:
-            if (time.time() - time_now) >= 5:
+            if (time.time() - time_now) >= 20:
                 print("Second stage!")
                 changed, new_freq, new_prev_idx = second_stage(freq, prev_idx, feedback, freqs)
                 if changed:
@@ -209,7 +210,14 @@ def second_stage(freq, idx, feedback, freqs):
             new_feedback = measurement[metric]
 
             print("freq= " + str(freq) + " new_feedback= " + str(new_feedback))
-            if (new_feedback > (feedback - abs(tolerance*feedback + extension))) and (new_feedback < (feedback + abs(tolerance*feedback + extension))):
+
+            if feedback == 0:
+                tolerance =  abs(perc*feedback + extension)
+            else:
+                tolerance =  abs(perc*feedback)
+
+
+            if (new_feedback > (feedback - tolerance)) and (new_feedback < (feedback + tolerance)):
                 continue
             else:
                 idx += 1

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# This file is part of IvPID.
+# This file is part of IvPID.1
 # Copyright (C) 2015 Ivmech Mechatronics Ltd. <bilgi@ivmech.com>
 #
 # IvPID is free software: you can redistribute it and/or modify
